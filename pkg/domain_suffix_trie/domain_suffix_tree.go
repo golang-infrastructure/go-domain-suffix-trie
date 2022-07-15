@@ -4,15 +4,49 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
+
+type childrenNodeMap struct {
+	sync.RWMutex
+	childrenNodeMap map[string]*DomainSuffixTrieNode
+}
+
+func (c *childrenNodeMap) Get(key string) (value *DomainSuffixTrieNode, exists bool) {
+	c.RLock()
+	defer c.RUnlock()
+
+	value, exists = c.childrenNodeMap[key]
+	return
+}
+
+func (c *childrenNodeMap) GetAll() map[string]DomainSuffixTrieNode {
+	c.Lock()
+	defer c.Unlock()
+	childrenNodeMap := make(map[string]DomainSuffixTrieNode, len(c.childrenNodeMap))
+	for key, value := range c.childrenNodeMap {
+		childrenNodeMap[key] = *value
+	}
+	return childrenNodeMap
+}
+
+func (c *childrenNodeMap) Set(key string, value *DomainSuffixTrieNode) {
+	c.Lock()
+	defer c.Unlock()
+	if c.childrenNodeMap == nil {
+		c.childrenNodeMap = make(map[string]*DomainSuffixTrieNode)
+	}
+	c.childrenNodeMap[key] = value
+}
+
+func newChildrenNodeMap() *childrenNodeMap {
+	return &childrenNodeMap{}
+}
 
 // DomainSuffixTrieNode
 //  @Description: 域名后缀树，用来做域名后缀匹配查询，这个结构是线程安全的
 //  @thread-safe: 是线程安全的
 type DomainSuffixTrieNode struct {
-
-	// 用于保证线程安全操作，每个节点会有一个锁，对接点线程不安全的字段操作、访问之前都要先获取锁
-	lock sync.RWMutex
 
 	// value
 	//  @Description: 此节点的值，用来存储域名后缀使用.分割后的一段，每一段是一个节点
@@ -26,15 +60,13 @@ type DomainSuffixTrieNode struct {
 
 	// childrenNodeMap
 	//  @Description: 此节点的孩子的值
-	//  @thread-unsafe: 因为是可以动态的往树上添加后缀的，因此孩子节点也是会动态改变的，
-	//                  因此此字段不是线程安全的，要加锁
-	childrenNodeMap map[string]*DomainSuffixTrieNode
+	//  @thread-safe: 因为是可以动态的往树上添加后缀的，因此孩子节点也是会动态改变的，
+	childrenNodeMap *childrenNodeMap
 
 	// payload
 	//  @Description: 关联到从根路径到子节点的这条后缀路径上的一些额外信息，
 	//                可以给某个域名后缀指定一些附加信息，当匹配的时候就能把它取回来
-	//  @thread-unsafe: 在节点创建之后payload允许被修改，因此是线程不安全的，对此字段的操作要加锁
-	payload interface{}
+	payload atomic.Value
 }
 
 // NewDomainSuffixTrie
@@ -42,13 +74,10 @@ type DomainSuffixTrieNode struct {
 //  @return *DomainSuffixTrieNode
 func NewDomainSuffixTrie() *DomainSuffixTrieNode {
 	return &DomainSuffixTrieNode{
-		lock: sync.RWMutex{},
 		// 根节点为空
 		value: "",
 		// 根节点没有父节点
-		parent:          nil,
-		childrenNodeMap: make(map[string]*DomainSuffixTrieNode),
-		payload:         nil,
+		childrenNodeMap: newChildrenNodeMap(),
 	}
 }
 
@@ -67,36 +96,19 @@ func (x *DomainSuffixTrieNode) GetNodeValue() string {
 func (x *DomainSuffixTrieNode) GetNodePath() string {
 	valueSlice := make([]string, 0)
 	currentNode := x
-	for currentNode != nil {
-		if currentNode.value != "" {
-			valueSlice = append(valueSlice, currentNode.value)
-		}
+	for currentNode != nil && currentNode.value != "" {
+		valueSlice = append(valueSlice, currentNode.value)
 		currentNode = currentNode.parent
 	}
 	return strings.Join(valueSlice, ".")
 }
 
-// GetParentNode
-//  @Description: 获取当前节点的父节点
-//  @receiver x:
-//  @return *DomainSuffixTrieNode:
-func (x *DomainSuffixTrieNode) GetParentNode() *DomainSuffixTrieNode {
-	return x.parent
-}
-
 // GetChildrenNodeMap
 //  @Description: 返回当前节点的所有孩子节点，注意返回的是一个拷贝，树是不允许直接修改的
 //  @receiver x:
-//  @return map[string]*DomainSuffixTrieNode:
-func (x *DomainSuffixTrieNode) GetChildrenNodeMap() map[string]*DomainSuffixTrieNode {
-	x.lock.Lock()
-	defer x.lock.Unlock()
-
-	childrenNodeMap := make(map[string]*DomainSuffixTrieNode)
-	for value, node := range x.childrenNodeMap {
-		childrenNodeMap[value] = node
-	}
-	return childrenNodeMap
+//  @return map[string]DomainSuffixTrieNode:
+func (x *DomainSuffixTrieNode) GetChildrenNodeMap() map[string]DomainSuffixTrieNode {
+	return x.childrenNodeMap.GetAll()
 }
 
 // GetChild
@@ -106,11 +118,7 @@ func (x *DomainSuffixTrieNode) GetChildrenNodeMap() map[string]*DomainSuffixTrie
 //  @return *DomainSuffixTrieNode:
 //  @return bool:
 func (x *DomainSuffixTrieNode) GetChild(childValue string) (*DomainSuffixTrieNode, bool) {
-	x.lock.Lock()
-	defer x.lock.Unlock()
-
-	childNode, exists := x.childrenNodeMap[childValue]
-	return childNode, exists
+	return x.childrenNodeMap.Get(childValue)
 }
 
 // addChild
@@ -119,10 +127,7 @@ func (x *DomainSuffixTrieNode) GetChild(childValue string) (*DomainSuffixTrieNod
 //  @param childNode:
 //  @return *DomainSuffixTrieNode:
 func (x *DomainSuffixTrieNode) addChild(childNode *DomainSuffixTrieNode) *DomainSuffixTrieNode {
-	x.lock.Lock()
-	defer x.lock.Unlock()
-
-	x.childrenNodeMap[childNode.value] = childNode
+	x.childrenNodeMap.Set(childNode.value, childNode)
 	return x
 }
 
@@ -132,10 +137,7 @@ func (x *DomainSuffixTrieNode) addChild(childNode *DomainSuffixTrieNode) *Domain
 //  @param payload:
 //  @return *DomainSuffixTrieNode:
 func (x *DomainSuffixTrieNode) SetPayload(payload interface{}) *DomainSuffixTrieNode {
-	x.lock.Lock()
-	defer x.lock.Unlock()
-
-	x.payload = payload
+	x.payload.Store(payload)
 	return x
 }
 
@@ -144,10 +146,7 @@ func (x *DomainSuffixTrieNode) SetPayload(payload interface{}) *DomainSuffixTrie
 //  @receiver x:
 //  @return interface{}:
 func (x *DomainSuffixTrieNode) GetPayload() interface{} {
-	x.lock.Lock()
-	defer x.lock.Unlock()
-
-	return x.payload
+	return x.payload.Load()
 }
 
 // setValue
