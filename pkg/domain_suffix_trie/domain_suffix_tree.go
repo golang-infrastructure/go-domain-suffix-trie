@@ -7,12 +7,14 @@ import (
 	"sync/atomic"
 )
 
+// ---------------------------------------------------------------------------------------------------------------------
+
 type childrenNodeMap struct {
 	sync.RWMutex
 	childrenNodeMap map[string]*DomainSuffixTrieNode
 }
 
-func (c *childrenNodeMap) Get(key string) (value *DomainSuffixTrieNode, exists bool) {
+func (c *childrenNodeMap) get(key string) (value *DomainSuffixTrieNode, exists bool) {
 	c.RLock()
 	defer c.RUnlock()
 
@@ -20,28 +22,34 @@ func (c *childrenNodeMap) Get(key string) (value *DomainSuffixTrieNode, exists b
 	return
 }
 
-func (c *childrenNodeMap) GetAll() map[string]DomainSuffixTrieNode {
+func (c *childrenNodeMap) getAll() map[string]*DomainSuffixTrieNode {
 	c.Lock()
 	defer c.Unlock()
-	childrenNodeMap := make(map[string]DomainSuffixTrieNode, len(c.childrenNodeMap))
+
+	childrenNodeMap := make(map[string]*DomainSuffixTrieNode, len(c.childrenNodeMap))
 	for key, value := range c.childrenNodeMap {
-		childrenNodeMap[key] = *value
+		childrenNodeMap[key] = value
 	}
 	return childrenNodeMap
 }
 
-func (c *childrenNodeMap) Set(key string, value *DomainSuffixTrieNode) {
+func (c *childrenNodeMap) set(key string, value *DomainSuffixTrieNode) *DomainSuffixTrieNode {
 	c.Lock()
 	defer c.Unlock()
+
 	if c.childrenNodeMap == nil {
 		c.childrenNodeMap = make(map[string]*DomainSuffixTrieNode)
 	}
+	oldValue := c.childrenNodeMap[key]
 	c.childrenNodeMap[key] = value
+	return oldValue
 }
 
 func newChildrenNodeMap() *childrenNodeMap {
 	return &childrenNodeMap{}
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
 
 // DomainSuffixTrieNode
 //  @Description: 域名后缀树，用来做域名后缀匹配查询，这个结构是线程安全的
@@ -107,8 +115,8 @@ func (x *DomainSuffixTrieNode) GetNodePath() string {
 //  @Description: 返回当前节点的所有孩子节点，注意返回的是一个拷贝，树是不允许直接修改的
 //  @receiver x:
 //  @return map[string]DomainSuffixTrieNode:
-func (x *DomainSuffixTrieNode) GetChildrenNodeMap() map[string]DomainSuffixTrieNode {
-	return x.childrenNodeMap.GetAll()
+func (x *DomainSuffixTrieNode) GetChildrenNodeMap() map[string]*DomainSuffixTrieNode {
+	return x.childrenNodeMap.getAll()
 }
 
 // GetChild
@@ -118,17 +126,19 @@ func (x *DomainSuffixTrieNode) GetChildrenNodeMap() map[string]DomainSuffixTrieN
 //  @return *DomainSuffixTrieNode:
 //  @return bool:
 func (x *DomainSuffixTrieNode) GetChild(childValue string) (*DomainSuffixTrieNode, bool) {
-	return x.childrenNodeMap.Get(childValue)
+	return x.childrenNodeMap.get(childValue)
 }
 
 // addChild
 //  @Description: 为当前节点添加孩子节点
 //  @receiver x:
 //  @param childNode:
-//  @return *DomainSuffixTrieNode:
+//  @return *DomainSuffixTrieNode: 如果要设置的key已经存在的话，会返回原来的key
 func (x *DomainSuffixTrieNode) addChild(childNode *DomainSuffixTrieNode) *DomainSuffixTrieNode {
-	x.childrenNodeMap.Set(childNode.value, childNode)
-	return x
+	if childNode == nil {
+		return nil
+	}
+	return x.childrenNodeMap.set(childNode.value, childNode)
 }
 
 // SetPayload
