@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/CC11001100/go-domain-suffix-tree/pkg/domain_suffix_trie"
+	"github.com/golang-infrastructure/go-domain-suffix-trie"
 )
 
 func main() {
 
 	// 调用 #NewDomainSuffixTrie 创建一颗后缀树
-	tree := domain_suffix_trie.NewDomainSuffixTrie()
+	tree := go_domain_suffix_trie.NewDomainSuffixTrie()
 
 	// 将需要匹配的域名后缀依次调用 #AddDomainSuffix 添加到树上，添加的时候可以为后缀指定一个payload（使用集合A构建树）
 	_ = tree.AddDomainSuffix("google.com", "谷歌主站子域名")

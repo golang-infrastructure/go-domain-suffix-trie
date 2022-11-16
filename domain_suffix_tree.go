@@ -1,4 +1,4 @@
-package domain_suffix_trie
+package go_domain_suffix_trie
 
 import (
 	"errors"
@@ -52,8 +52,9 @@ func newChildrenNodeMap() *childrenNodeMap {
 // ---------------------------------------------------------------------------------------------------------------------
 
 // DomainSuffixTrieNode
-//  @Description: 域名后缀树，用来做域名后缀匹配查询，这个结构是线程安全的
-//  @thread-safe: 是线程安全的
+//
+//	@Description: 域名后缀树，用来做域名后缀匹配查询，这个结构是线程安全的
+//	@thread-safe: 是线程安全的
 type DomainSuffixTrieNode struct {
 
 	// value
@@ -78,8 +79,9 @@ type DomainSuffixTrieNode struct {
 }
 
 // NewDomainSuffixTrie
-//  @Description: 创建一颗新的域名后缀树，将这颗树的根节点返回
-//  @return *DomainSuffixTrieNode
+//
+//	@Description: 创建一颗新的域名后缀树，将这颗树的根节点返回
+//	@return *DomainSuffixTrieNode
 func NewDomainSuffixTrie() *DomainSuffixTrieNode {
 	return &DomainSuffixTrieNode{
 		// 根节点为空
@@ -90,17 +92,19 @@ func NewDomainSuffixTrie() *DomainSuffixTrieNode {
 }
 
 // GetNodeValue
-//  @Description: 获取当前节点对应的值，比如 com --> google --> api，如果当前节点是在api这个节点上，则此方法返回 "api"
-//  @receiver x:
-//  @return string:
+//
+//	@Description: 获取当前节点对应的值，比如 com --> google --> api，如果当前节点是在api这个节点上，则此方法返回 "api"
+//	@receiver x:
+//	@return string:
 func (x *DomainSuffixTrieNode) GetNodeValue() string {
 	return x.value
 }
 
 // GetNodePath
-//  @Description: 获取当前节点对应的后缀路径，比如 com --> google --> api，如果当前节点是在api这个节点上，则此方法返回 "api.google.com"
-//  @receiver x:
-//  @return string:
+//
+//	@Description: 获取当前节点对应的后缀路径，比如 com --> google --> api，如果当前节点是在api这个节点上，则此方法返回 "api.google.com"
+//	@receiver x:
+//	@return string:
 func (x *DomainSuffixTrieNode) GetNodePath() string {
 	valueSlice := make([]string, 0)
 	currentNode := x
@@ -112,28 +116,31 @@ func (x *DomainSuffixTrieNode) GetNodePath() string {
 }
 
 // GetChildrenNodeMap
-//  @Description: 返回当前节点的所有孩子节点，注意返回的是一个拷贝，树是不允许直接修改的
-//  @receiver x:
-//  @return map[string]DomainSuffixTrieNode:
+//
+//	@Description: 返回当前节点的所有孩子节点，注意返回的是一个拷贝，树是不允许直接修改的
+//	@receiver x:
+//	@return map[string]DomainSuffixTrieNode:
 func (x *DomainSuffixTrieNode) GetChildrenNodeMap() map[string]*DomainSuffixTrieNode {
 	return x.childrenNodeMap.getAll()
 }
 
 // GetChild
-//  @Description: 获取当前节点的孩子节点
-//  @receiver x:
-//  @param childValue:
-//  @return *DomainSuffixTrieNode:
-//  @return bool:
+//
+//	@Description: 获取当前节点的孩子节点
+//	@receiver x:
+//	@param childValue:
+//	@return *DomainSuffixTrieNode:
+//	@return bool:
 func (x *DomainSuffixTrieNode) GetChild(childValue string) (*DomainSuffixTrieNode, bool) {
 	return x.childrenNodeMap.get(childValue)
 }
 
 // addChild
-//  @Description: 为当前节点添加孩子节点
-//  @receiver x:
-//  @param childNode:
-//  @return *DomainSuffixTrieNode: 如果要设置的key已经存在的话，会返回原来的key
+//
+//	@Description: 为当前节点添加孩子节点
+//	@receiver x:
+//	@param childNode:
+//	@return *DomainSuffixTrieNode: 如果要设置的key已经存在的话，会返回原来的key
 func (x *DomainSuffixTrieNode) addChild(childNode *DomainSuffixTrieNode) *DomainSuffixTrieNode {
 	if childNode == nil {
 		return nil
@@ -142,38 +149,42 @@ func (x *DomainSuffixTrieNode) addChild(childNode *DomainSuffixTrieNode) *Domain
 }
 
 // SetPayload
-//  @Description: 修改节点所绑定的payload，允许在节点创建之后修改其绑定的payload
-//  @receiver x:
-//  @param payload:
-//  @return *DomainSuffixTrieNode:
+//
+//	@Description: 修改节点所绑定的payload，允许在节点创建之后修改其绑定的payload
+//	@receiver x:
+//	@param payload:
+//	@return *DomainSuffixTrieNode:
 func (x *DomainSuffixTrieNode) SetPayload(payload interface{}) *DomainSuffixTrieNode {
 	x.payload.Store(payload)
 	return x
 }
 
 // GetPayload
-//  @Description: 获取当前节点绑定的payload
-//  @receiver x:
-//  @return interface{}:
+//
+//	@Description: 获取当前节点绑定的payload
+//	@receiver x:
+//	@return interface{}:
 func (x *DomainSuffixTrieNode) GetPayload() interface{} {
 	return x.payload.Load()
 }
 
 // setValue
-//  @Description: 设置节点的值
-//  @receiver x:
-//  @param value:
-//  @return *DomainSuffixTrieNode:
+//
+//	@Description: 设置节点的值
+//	@receiver x:
+//	@param value:
+//	@return *DomainSuffixTrieNode:
 func (x *DomainSuffixTrieNode) setValue(value string) *DomainSuffixTrieNode {
 	x.value = value
 	return x
 }
 
 // setParent
-//  @Description: 设置父节点的值
-//  @receiver x:
-//  @param parent:
-//  @return *DomainSuffixTrieNode:
+//
+//	@Description: 设置父节点的值
+//	@receiver x:
+//	@param parent:
+//	@return *DomainSuffixTrieNode:
 func (x *DomainSuffixTrieNode) setParent(parent *DomainSuffixTrieNode) *DomainSuffixTrieNode {
 	x.parent = parent
 	return x
@@ -185,11 +196,12 @@ func (x *DomainSuffixTrieNode) setParent(parent *DomainSuffixTrieNode) *DomainSu
 var DomainSuffixIsEmptyError = errors.New("域名后缀是空的")
 
 // AddDomainSuffix
-//  @Description: 添加域名后缀追到字典树上
-//  @receiver x:
-//  @param domainSuffix: 要添加的域名后缀
-//  @param payload: 可以为这个后缀绑定一些payload，在后面拿域名匹配到这个后缀的时候可以一起获取到这个payload
-//  @return error: 如果添加后缀到树上时发生错误则返回error，否则返回nil
+//
+//	@Description: 添加域名后缀追到字典树上
+//	@receiver x:
+//	@param domainSuffix: 要添加的域名后缀
+//	@param payload: 可以为这个后缀绑定一些payload，在后面拿域名匹配到这个后缀的时候可以一起获取到这个payload
+//	@return error: 如果添加后缀到树上时发生错误则返回error，否则返回nil
 func (x *DomainSuffixTrieNode) AddDomainSuffix(domainSuffix string, payload interface{}) error {
 
 	// 必须是合法的后缀域名
@@ -223,11 +235,12 @@ func (x *DomainSuffixTrieNode) AddDomainSuffix(domainSuffix string, payload inte
 }
 
 // FindMatchDomainSuffixNode
-//  @Description: 根据域名查询所匹配的后缀所对应的节点，会遵循最长匹配原则，比如如果可以同时匹配api.google.com和google.com，
-//                则最终会匹配到api.google.com
-//  @receiver x:
-//  @param domain: 要匹配的域名，比如 www.google.com
-//  @return *DomainSuffixTrieNode: 匹配到的后缀所对应的TreeNode，如果没有匹配到的话则返回nil
+//
+//	@Description: 根据域名查询所匹配的后缀所对应的节点，会遵循最长匹配原则，比如如果可以同时匹配api.google.com和google.com，
+//	              则最终会匹配到api.google.com
+//	@receiver x:
+//	@param domain: 要匹配的域名，比如 www.google.com
+//	@return *DomainSuffixTrieNode: 匹配到的后缀所对应的TreeNode，如果没有匹配到的话则返回nil
 func (x *DomainSuffixTrieNode) FindMatchDomainSuffixNode(domain string) *DomainSuffixTrieNode {
 	// 对输入的域名切割为不同的级别
 	domainLevelValueSlice := strings.Split(domain, ".")
@@ -246,11 +259,12 @@ func (x *DomainSuffixTrieNode) FindMatchDomainSuffixNode(domain string) *DomainS
 }
 
 // FindMatchDomainSuffixPayload
-//  @Description: 根据域名查询所匹配的后缀所对应的payload，会遵循最长匹配原则，比如如果可以同时匹配api.google.com和google.com，
-//                则最终会匹配到api.google.com
-//  @receiver x:
-//  @param domain: 要匹配的域名，比如 www.google.com
-//  @return interface{}: 匹配到的后缀所绑定的payload，如果没有匹配到的话则返回nil
+//
+//	@Description: 根据域名查询所匹配的后缀所对应的payload，会遵循最长匹配原则，比如如果可以同时匹配api.google.com和google.com，
+//	              则最终会匹配到api.google.com
+//	@receiver x:
+//	@param domain: 要匹配的域名，比如 www.google.com
+//	@return interface{}: 匹配到的后缀所绑定的payload，如果没有匹配到的话则返回nil
 func (x *DomainSuffixTrieNode) FindMatchDomainSuffixPayload(domain string) interface{} {
 	node := x.FindMatchDomainSuffixNode(domain)
 	if node != nil {

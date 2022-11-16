@@ -1,3 +1,3 @@
-module github.com/CC11001100/go-domain-suffix-tree
+module github.com/golang-infrastructure/go-domain-suffix-trie
 
 go 1.18
