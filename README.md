@@ -48,7 +48,7 @@ b.api.baidu.com
 a.007.qq.com
 ```
 
-现在要为这集合B中的每个域名从集合A中做后缀匹配，这个工具类就是用来解决这个问题的。
+现在要为这集合B中的每个域名从集合A中做后缀匹配，这个工具类就是用来解决这个问题的，尤其是在海量子域名关联到根域名上时效率极高。
 
 ## 三、Example
 
@@ -65,13 +65,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/golang-infrastructure/go-domain-suffix-trie"
+	domain_suffix_trie "github.com/golang-infrastructure/go-domain-suffix-trie"
 )
 
 func main() {
 
 	// 调用 #NewDomainSuffixTrie 创建一颗后缀树
-	tree := go_domain_suffix_trie.NewDomainSuffixTrie()
+	tree := domain_suffix_trie.NewDomainSuffixTrie[string]()
 
 	// 将需要匹配的域名后缀依次调用 #AddDomainSuffix 添加到树上，添加的时候可以为后缀指定一个payload（使用集合A构建树）
 	_ = tree.AddDomainSuffix("google.com", "谷歌主站子域名")
@@ -81,13 +81,9 @@ func main() {
 
 	// 需要查询的时候调用 #FindMatchDomainSuffixPayload 或者 #FindMatchDomainSuffixNode 查询，
 	// 参数是一个完整的域名，会返回此域名匹配到的后缀在之前指定的payload（将集合B的每个元素依次在树上查询）
-	fmt.Println(tree.FindMatchDomainSuffixPayload("test.google.com"))           // output: 谷歌主站子域名
-	fmt.Println(tree.FindMatchDomainSuffixPayload("test.map.google.com"))       // output: 谷歌地图子域名
-	fmt.Println(tree.FindMatchDomainSuffixNode("test.baidu.com").GetNodePath()) // output: baidu.com
-	fmt.Println(tree.FindMatchDomainSuffixNode("test.jd.com").GetNodeValue())   // output: jd
+	fmt.Println(tree.FindMatchDomainSuffixPayload("test.google.com"))               // output: 谷歌主站子域名
+	fmt.Println(tree.FindMatchDomainSuffixPayload("test.map.google.com"))           // output: 谷歌地图子域名
+	fmt.Println(tree.FindMatchDomainSuffixNode("test.baidu.com").GetNodeTriePath()) // output: baidu.com
+	fmt.Println(tree.FindMatchDomainSuffixNode("test.jd.com").GetNodeTrieValue())   // output: jd
 }
-
 ```
-
-# TODO 
-将线程安全和非线程安全分为两个数据结构 
